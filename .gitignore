@@ -1,0 +1,28 @@
+# Python virtual environment
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.py
+
+# All downloaded/output files
+*.bin
+*.hex
+*.txt
+*.fastq.gz
+*.fastq
+*.bam
+*.tif
+*.tiff
+first_mb*
+chunk*
+range*
+
+# OS files
+.DS_Store
+.idea/
+*.swp
+*.swo
+
+# Synapse config (contains auth token)
+.synapseConfig
