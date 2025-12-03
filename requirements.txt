@@ -1,0 +1,3 @@
+# Requirements for FASTQ composition detection
+sourmash>=4.8.0
+requests>=2.31.0

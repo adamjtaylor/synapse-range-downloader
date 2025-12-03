@@ -3,12 +3,18 @@
 venv/
 __pycache__/
 *.pyc
+
+# Python scripts (ignore test/output scripts)
 *.py
+# But keep the composition tool
+!fastq_composition.py
 
 # All downloaded/output files
 *.bin
 *.hex
 *.txt
+# But keep requirements file
+!requirements.txt
 *.fastq.gz
 *.fastq
 *.bam
@@ -26,3 +32,6 @@ range*
 
 # Synapse config (contains auth token)
 .synapseConfig
+
+# Reference signatures (user-specific)
+references/*.sig

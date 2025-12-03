@@ -18,6 +18,10 @@ A bash script to download specific byte ranges from Synapse files without downlo
    - `jq` - for JSON parsing
    - `xxd` - for hex dump generation
    - `bash` - to run the script
+3. **Optional - For composition detection**:
+   - `python3` - for running the composition analysis tool
+   - `sourmash` - for k-mer sketching and species detection
+   - Install with: `pip install -r requirements.txt`
 
 ## Installation
 
@@ -146,6 +150,83 @@ This approach allows you to:
 - **Check sequencing parameters** (instrument, run number, flowcell ID)
 - **Validate indices** before full download
 - **Estimate GC content and quality scores**
+
+#### Detect Species Composition and Contamination (Advanced)
+
+Use sourmash to identify organism composition and detect cross-contamination in FASTQ files. This uses k-mer sketching and containment metrics to determine what organisms are present.
+
+**Prerequisites**:
+```bash
+# Install sourmash
+pip install -r requirements.txt
+
+# Create references directory (if not exists)
+mkdir -p references
+```
+
+**Setup Reference Signatures**:
+
+You need reference signatures for the organisms you want to detect. You can either download pre-built signatures or create your own:
+
+```bash
+# Option 1: Download pre-built signatures (example for common organisms)
+# Download from https://sourmash.readthedocs.io/en/latest/databases.html
+# or create your own
+
+# Option 2: Create from genome FASTA files
+sourmash sketch dna -p k=31,scaled=1000 human_genome.fa -o references/human.sig
+sourmash sketch dna -p k=31,scaled=1000 mouse_genome.fa -o references/mouse.sig
+sourmash sketch dna -p k=31,scaled=1000 phix.fa -o references/phix.sig
+```
+
+**Usage**:
+```bash
+# Step 1: Download first 1MB using range request
+./test-syn-get-range.sh syn59058208 0-1048575 sample.fastq.gz
+
+# Step 2: Detect composition
+python fastq_composition.py sample.fastq.gz
+```
+
+**Example Output - Cross-Contamination Detected**:
+```json
+{
+  "source": "sample.fastq.gz",
+  "reads_sampled": 10000,
+  "composition_estimate": {
+    "Human": 0.78,
+    "Mouse": 0.15
+  },
+  "unknown_content": 0.07,
+  "is_mixed": true,
+  "is_contaminated": true,
+  "contamination_warning": "Human/Mouse mixture detected"
+}
+```
+
+**Interpretation**:
+- **Pure Sample**: `{"Human": 0.98}` - Species verified, good quality
+- **Cross-Contaminated**: `{"Human": 0.78, "Mouse": 0.15}` - Multiple species detected, flag for review
+- **Technical Failure**: `{"Phix": 0.95}` - Sequencer control contamination, run failed
+- **Unknown**: `{"unknown_content": 0.90}` - Organism not in reference set, may need additional references
+
+**Use Cases**:
+- **PDX Model Verification**: Confirm human tumor cells in mouse host (e.g., 80% Human, 20% Mouse expected)
+- **Cell Line Authentication**: Verify species matches expected organism
+- **Contamination Screening**: Detect PhiX control contamination or cross-sample contamination
+- **Species Verification**: Validate metadata before data submission
+
+**Command Options**:
+```bash
+# Analyze with custom reference directory
+python fastq_composition.py sample.fastq.gz --ref-dir ./my_refs
+
+# Limit number of reads processed
+python fastq_composition.py sample.fastq.gz --reads 10000
+
+# Stream directly from URL (bypasses bash script)
+python fastq_composition.py --url https://example.com/file.fastq.gz
+```
 
 #### Sample a large file
 
